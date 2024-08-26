@@ -1,113 +1,221 @@
-import Image from "next/image";
+"use client"
 
+import { ChangeEvent, FormEvent, useState } from 'react';
+import { create } from 'ipfs-http-client';
 export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+  const [currentSection, setCurrentSection] = useState('register');
+  const [courses, setCourses] = useState([
+    { id: 1, name: 'React Basics', visible: true },
+    { id: 2, name: 'Advanced Next.js', visible: true },
+    { id: 3, name: 'JavaScript Essentials', visible: true },
+  ]);
+  const isAdmin = true; // Example condition
+
+  const renderSection = () => {
+    switch (currentSection) {
+      case 'register':
+        return <RegisterInstitute />;
+      case 'issue':
+        return <IssueCertificate contract={undefined} account={''} />;
+      case 'view':
+        return <ViewCertificates />;
+      case 'visibility':
+        return <Visibility />;
+      default:
+        return <RegisterInstitute />;
+    }
+  };
+
+  function RegisterInstitute() {
+    return (
+      <form className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+        <h2 className="text-2xl font-bold mb-4 text-black">Register Institute</h2>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">Institute Name</label>
+          <input type="text" className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
         </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">Institute Address</label>
+          <input type="text" className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">Institute Acronym</label>
+          <input type="text" className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">Website</label>
+          <input type="text" className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">Email</label>
+          <input type="email" className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
+        </div>
+        <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded-md">
+          Register
+        </button>
+      </form>
+    );
+  }
+
+  interface IssueCertificateProps {
+    contract: any;
+    account: string;
+  }
+  const client = create({ url: 'https://ipfs.infura.io:5001/api/v0' });
+  function IssueCertificate({ contract, account }: IssueCertificateProps) {
+    const [ipfsHash, setIpfsHash] = useState<string>('');
+    const [file, setFile] = useState<File | null>(null);
+  
+    const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+      if (event.target.files) {
+        setFile(event.target.files[0]);
+      }
+    };
+  
+    const uploadToIPFS = async () => {
+      try {
+        if (file) {
+          const added = await client.add(file);
+          setIpfsHash(added.path);
+        }
+      } catch (error) {
+        console.error('Error uploading file: ', error);
+      }
+    };
+  
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const form = event.target as HTMLFormElement;
+      const id = (form[0] as HTMLInputElement).value;
+      const candidateName = (form[1] as HTMLInputElement).value;
+      const courseIndex = parseInt((form[2] as HTMLInputElement).value);
+      const creationDate = (form[3] as HTMLInputElement).value;
+  
+      try {
+        await contract.methods.generateCertificate(
+          id,
+          candidateName,
+          courseIndex,
+          creationDate,
+          ipfsHash
+        ).send({ from: account });
+        alert('Certificate issued successfully!');
+      } catch (error) {
+        console.error('Error issuing certificate: ', error);
+      }
+    };
+  return (
+    <form className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto" onSubmit={handleSubmit}>
+      <h2 className="text-2xl font-bold mb-4 text-black">Issue Certificate</h2>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700">ID</label>
+        <input type="text" className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
       </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700">Recipient Name</label>
+        <input type="text" className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
       </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700">Course Name</label>
+        <input type="text" className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
       </div>
-    </main>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700">Issue Date</label>
+        <input type="date" className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
+      </div>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700">Certificate Photo</label>
+        <input type="file" onChange={handleFileChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
+        <button type="button" onClick={uploadToIPFS} className="mt-2 bg-blue-600 text-white p-2 rounded-md">
+          Upload to IPFS
+        </button>
+      </div>
+      {ipfsHash && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">IPFS Hash</label>
+          <input type="text" value={ipfsHash} readOnly className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
+        </div>
+      )}
+      <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded-md">
+        Issue Certificate
+      </button>
+    </form>
+  );
+}
+
+  function ViewCertificates() {
+    const [certificates] = useState([
+      { id: 1, name: 'John Doe', course: 'React Basics', date: '2023-01-10' },
+      { id: 2, name: 'Jane Smith', course: 'Advanced Next.js', date: '2023-02-15' },
+    ]);
+
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+        <h2 className="text-2xl font-bold mb-4">User Certificates</h2>
+        <ul>
+          {certificates.map((cert) => (
+            <li key={cert.id} className="mb-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="text-lg font-semibold">{cert.name}</div>
+                  <div className="text-sm text-gray-600">{cert.course}</div>
+                  <div className="text-sm text-gray-500">{cert.date}</div>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  function Visibility() {
+    const toggleCourseVisibility = (id: number) => {
+      setCourses(courses.map(course => course.id === id ? { ...course, visible: !course.visible } : course));
+    };
+
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+        <h2 className="text-2xl font-bold mb-4 text-black">Toggle Course Visibility</h2>
+        <ul>
+          {courses.map((course) => (
+            <li key={course.id} className="flex justify-between items-center mb-4">
+              <span>{course.name}</span>
+              <button
+                onClick={() => toggleCourseVisibility(course.id)}
+                className={`p-2 rounded-md ${course.visible ? 'bg-green-500' : 'bg-red-500'} text-white`}
+              >
+                {course.visible ? 'Visible' : 'Hidden'}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <nav className="bg-blue-600 p-4 text-white">
+        <ul className="flex space-x-4 justify-center">
+          <li onClick={() => setCurrentSection('register')} className={`cursor-pointer ${currentSection === 'register' ? 'text-xl' : ''} hover:text-blue-800 hover:scale-105 transition-all`}>
+            Register Institute
+          </li>
+          {isAdmin ? (
+            <li onClick={() => setCurrentSection('issue')} className={`cursor-pointer ${currentSection === 'issue' ? 'text-xl' : ''} hover:text-blue-800 hover:scale-105 transition-all`}>
+              Issue Certificate
+            </li>
+          ) : (
+            <li onClick={() => setCurrentSection('visibility')} className={`cursor-pointer ${currentSection === 'visibility' ? 'text-xl' : ''} hover:text-blue-800 hover:scale-105 transition-all`}>
+              Visibility
+            </li>
+          )}
+          <li onClick={() => setCurrentSection('view')} className={`cursor-pointer ${currentSection === 'view' ? 'text-xl' : ''} hover:text-blue-800 hover:scale-105 transition-all`}>
+            View Certificates
+          </li>
+        </ul>
+      </nav>
+      <div className="p-8">{renderSection()}</div>
+    </div>
   );
 }
